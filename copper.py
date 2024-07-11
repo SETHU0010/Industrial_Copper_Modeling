@@ -18,15 +18,15 @@ st.write("""
 </div>
 """, unsafe_allow_html=True)
 
-# Streamlit app sections
 def about_the_developer():
     st.header("About the Developer")
-#    st.image("1.jpg", caption="Sethumadhavan V", width=150)
-    st.subheader("Contact Details")
-    st.write("Email: sethumadhavanvelu2002@example.com")
-    st.write("Phone: 9159299878")
-    st.write("[LinkedIn ID](https://www.linkedin.com/in/sethumadhavan-v-b84890257/)")
-    st.write("[github.com](https://github.com/SETHU0010/Industrial_Copper_Modeling.git)")
+    st.subheader("Sethumadhavan V")
+    st.markdown("""
+    📧 Email: sethumadhavanvelu2002@example.com  
+    📞 Phone: 9159299878  
+    [LinkedIn](https://www.linkedin.com/in/sethumadhavan-v-b84890257/)  
+    [GitHub](https://github.com/SETHU0010/Industrial_Copper_Modeling.git)
+    """, unsafe_allow_html=True)
 
 def skills_take_away():
     st.header("Skills Take Away From This Project")
@@ -117,7 +117,31 @@ def main():
 if __name__ == "__main__":
     main()
 
-tab1, tab2 = st.tabs(["PREDICT SELLING PRICE", "PREDICT STATUS"])
+# Options for dropdown menus
+status_options = ['Won', 'Draft', 'To be approved', 'Lost', 'Not lost for AM', 'Wonderful', 'Revised', 'Offered', 'Offerable']
+item_type_options = ['W', 'WI', 'S', 'Others', 'PL', 'IPL', 'SLAWR']
+country_options = [28., 25., 30., 32., 38., 78., 27., 77., 113., 79., 26., 39., 40., 84., 80., 107., 89.]
+application_options = [10., 41., 28., 59., 15., 4., 38., 56., 42., 26., 27., 19., 20., 66., 29., 22., 40., 25., 67., 79., 3., 99., 2., 5., 39., 69., 70., 65., 58., 68.]
+product_options = ['611112', '611728', '628112', '628117', '628377', '640400', '640405', '640665', '611993', '929423819', '1282007633', '1332077137', '164141591', '164336407', '164337175', '1665572032', '1665572374', '1665584320', '1665584642', '1665584662', '1668701376', '1668701698', '1668701718', '1668701725', '1670798778', '1671863738', '1671876026', '1690738206', '1690738219', '1693867550', '1693867563', '1721130331', '1722207579']
+
+def load_model(file_path):
+    with open(file_path, 'rb') as file:
+        return pickle.load(file)
+
+def validate_inputs(inputs):
+    pattern = "^(?:\d+|\d*\.\d+)$"
+    for i in inputs:
+        if not re.match(pattern, i):
+            return False, i
+    return True, None
+
+def prepare_input(inputs, ohe_transformer, scaler):
+    ohe_features = ohe_transformer.transform(inputs[:, [7]]).toarray()
+    inputs = np.concatenate((inputs[:, [0, 1, 2, 3, 4, 5, 6]], ohe_features), axis=1)
+    inputs_scaled = scaler.transform(inputs)
+    return inputs_scaled
+# Add tabs for prediction
+tab1, tab2 = st.tabs(["🔮 Predict Selling Price", "🔍 Predict Lead Status"])
 
 # Options for dropdown menus
 status_options = ['Won', 'Draft', 'To be approved', 'Lost', 'Not lost for AM', 'Wonderful', 'Revised', 'Offered', 'Offerable']
@@ -145,8 +169,10 @@ def prepare_input(inputs, ohe_transformer, scaler):
 
 # Tab 1: Predict Selling Price
 with tab1:
+    st.header("🔮 Predict Selling Price")
     with st.form("price_form"):
-        col1, col3 = st.columns([5, 5])
+        col1, col2 = st.columns(2)
+
         with col1:
             status = st.selectbox("Status", status_options, key=1)
             item_type = st.selectbox("Item Type", item_type_options, key=2)
@@ -154,21 +180,19 @@ with tab1:
             application = st.selectbox("Application", sorted(application_options), key=4)
             product_ref = st.selectbox("Product Reference", product_options, key=5)
         
-        with col3:
-            st.write(
-                f'<h5 style="color:rgb(0, 153, 153,0.4);">NOTE: Min & Max given for reference, you can enter any value</h5>',
-                unsafe_allow_html=True)
-            quantity_tons = st.text_input("Enter Quantity Tons (Min:611728 & Max:1722207579)")
-            thickness = st.text_input("Enter Thickness (Min:0.18 & Max:400)")
-            width = st.text_input("Enter Width (Min:1, Max:2990)")
-            customer = st.text_input("Customer ID (Min:12458, Max:30408185)")
-            submit_button = st.form_submit_button(label="PREDICT SELLING PRICE")
+        with col2:
+            st.write("**Note:** Min & Max values are for reference; you can enter any value within the range.")
+            quantity_tons = st.text_input("Quantity Tons (Min: 611728, Max: 1722207579)")
+            thickness = st.text_input("Thickness (Min: 0.18, Max: 400)")
+            width = st.text_input("Width (Min: 1, Max: 2990)")
+            customer = st.text_input("Customer ID (Min: 12458, Max: 30408185)")
+            submit_button = st.form_submit_button(label="Predict Selling Price")
         
         if submit_button:
             inputs_valid, invalid_input = validate_inputs([quantity_tons, thickness, width, customer])
             if not inputs_valid:
                 if len(invalid_input) == 0:
-                    st.write("Please enter a valid number. Space not allowed.")
+                    st.write("Please enter a valid number. No spaces allowed.")
                 else:
                     st.write(f"You have entered an invalid value: {invalid_input}")
             else:
@@ -181,31 +205,33 @@ with tab1:
                 new_sample_prepared = prepare_input(new_sample, ohe_transformer, scaler)
                 
                 predicted_price = model.predict(new_sample_prepared)[0]
-                st.write('## :green[Predicted selling price:] ', predicted_price)
+                st.write(f'## :green[Predicted Selling Price:] ${predicted_price:.2f}')
 
 # Tab 2: Predict Status
 with tab2:
+    st.header("🔍 Predict Lead Status")
     with st.form("status_form"):
-        col1, col3 = st.columns([5, 5])
+        col1, col2 = st.columns(2)
+
         with col1:
-            cquantity_tons = st.text_input("Enter Quantity Tons (Min:611728 & Max:1722207579)")
-            cthickness = st.text_input("Enter Thickness (Min:0.18 & Max:400)")
-            cwidth = st.text_input("Enter Width (Min:1, Max:2990)")
-            ccustomer = st.text_input("Customer ID (Min:12458 & Max:30408185)")
-            cselling = st.text_input("Selling Price (Min:1, Max:100001015)")
+            cquantity_tons = st.text_input("Quantity Tons (Min: 611728, Max: 1722207579)")
+            cthickness = st.text_input("Thickness (Min: 0.18, Max: 400)")
+            cwidth = st.text_input("Width (Min: 1, Max: 2990)")
+            ccustomer = st.text_input("Customer ID (Min: 12458, Max: 30408185)")
+            cselling = st.text_input("Selling Price (Min: 1, Max: 100001015)")
         
-        with col3:
+        with col2:
             citem_type = st.selectbox("Item Type", item_type_options, key=21)
             ccountry = st.selectbox("Country", sorted(country_options), key=31)
             capplication = st.selectbox("Application", sorted(application_options), key=41)
             cproduct_ref = st.selectbox("Product Reference", product_options, key=51)
-            csubmit_button = st.form_submit_button(label="PREDICT STATUS")
+            csubmit_button = st.form_submit_button(label="Predict Lead Status")
         
         if csubmit_button:
             inputs_valid, invalid_input = validate_inputs([cquantity_tons, cthickness, cwidth, ccustomer, cselling])
             if not inputs_valid:
                 if len(invalid_input) == 0:
-                    st.write("Please enter a valid number. Space not allowed.")
+                    st.write("Please enter a valid number. No spaces allowed.")
                 else:
                     st.write(f"You have entered an invalid value: {invalid_input}")
             else:
