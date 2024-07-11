@@ -83,7 +83,3 @@ A machine learning project for predicting copper item selling prices and classif
 
 - `pandas`, `numpy`, `matplotlib`, `seaborn`, `scikit-learn`, `streamlit`
 
----
-
-## 📁 Project Structure
-
